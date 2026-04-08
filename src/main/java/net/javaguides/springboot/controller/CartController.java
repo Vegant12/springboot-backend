@@ -36,8 +36,7 @@ public class CartController {
 
     @GetMapping("/carts/{id}")
     public Cart getCartItemById(@PathVariable Long id) {
-        return cartRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + id));
+        return cartRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Cart item not found with id: " + id));
     }
 
     @PostMapping("/carts")
