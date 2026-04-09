@@ -35,13 +35,20 @@ public class CartService {
             throw new ResourceNotFoundException("Valid food id is required");
         }
 
-        Food food = foodRepository.findById(cartRequest.getFood().getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Food not found with id: " + cartRequest.getFood().getId()));
+        Long foodId = cartRequest.getFood().getId();
+        Food food = foodRepository.findById(foodId).orElseThrow(() -> new ResourceNotFoundException("Food not found with id: " + foodId));
+
+        int requestedQuantity = cartRequest.getQuantity() > 0 ? cartRequest.getQuantity() : 1;
+
+        Cart existingItem = cartRepository.findByFoodId(foodId).orElse(null);
+        if (existingItem != null) {
+            existingItem.setQuantity(existingItem.getQuantity() + requestedQuantity);
+            return cartRepository.save(existingItem);
+        }
 
         Cart cartItem = new Cart();
         cartItem.setFood(food);
-        cartItem.setQuantity(cartRequest.getQuantity() > 0 ? cartRequest.getQuantity() : 1);
+        cartItem.setQuantity(requestedQuantity);
         return cartRepository.save(cartItem);
     }
 
@@ -50,8 +57,7 @@ public class CartService {
 
         if (cartRequest.getFood() != null && cartRequest.getFood().getId() > 0) {
             Food food = foodRepository.findById(cartRequest.getFood().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Food not found with id: " + cartRequest.getFood().getId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Food not found with id: " + cartRequest.getFood().getId()));
             cartItem.setFood(food);
         }
 

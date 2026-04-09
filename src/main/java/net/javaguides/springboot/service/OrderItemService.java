@@ -49,11 +49,9 @@ public class OrderItemService {
         }
 
         Order order = orderRepository.findById(itemRequest.getOrder().getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Order not found with id: " + itemRequest.getOrder().getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + itemRequest.getOrder().getId()));
         Food food = foodRepository.findById(itemRequest.getFood().getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Food not found with id: " + itemRequest.getFood().getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Food not found with id: " + itemRequest.getFood().getId()));
 
         OrderItem orderItem = new OrderItem();
         orderItem.setOrder(order);
@@ -71,15 +69,13 @@ public class OrderItemService {
 
         if (itemRequest.getOrder() != null && itemRequest.getOrder().getId() > 0) {
             Order order = orderRepository.findById(itemRequest.getOrder().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Order not found with id: " + itemRequest.getOrder().getId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + itemRequest.getOrder().getId()));
             orderItem.setOrder(order);
         }
 
         if (itemRequest.getFood() != null && itemRequest.getFood().getId() > 0) {
             Food food = foodRepository.findById(itemRequest.getFood().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Food not found with id: " + itemRequest.getFood().getId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Food not found with id: " + itemRequest.getFood().getId()));
             orderItem.setFood(food);
         }
 
