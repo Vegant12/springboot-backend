@@ -1,6 +1,8 @@
 package net.javaguides.springboot.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -10,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import net.javaguides.springboot.model.Cart;
 import net.javaguides.springboot.model.Food;
-import net.javaguides.springboot.repository.CartRepository;
-import net.javaguides.springboot.repository.FoodRepository;
+import net.javaguides.springboot.service.CartService;
 
 @WebMvcTest(CartController.class)
 class CartControllerTest {
@@ -31,17 +31,14 @@ class CartControllerTest {
 	private MockMvc mockMvc;
 
 	@MockitoBean
-	private CartRepository cartRepository;
-
-	@MockitoBean
-	private FoodRepository foodRepository;
+	private CartService cartService;
 
 	@Test
 	void getCartItemById_returns200_whenFound() throws Exception {
 		Food food = food(1L, "Burger");
 		Cart cart = cart(5L, food, 2);
 
-		when(cartRepository.findById(5L)).thenReturn(Optional.of(cart));
+		when(cartService.getCartItemById(5L)).thenReturn(cart);
 
 		mockMvc.perform(get("/api/v1/carts/5"))
 				.andExpect(status().isOk())
@@ -53,7 +50,8 @@ class CartControllerTest {
 
 	@Test
 	void getCartItemById_returns404_whenMissing() throws Exception {
-		when(cartRepository.findById(99L)).thenReturn(Optional.empty());
+		when(cartService.getCartItemById(99L))
+				.thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Cart item not found with id: 99"));
 
 		mockMvc.perform(get("/api/v1/carts/99")).andExpect(status().isNotFound());
 	}
@@ -61,7 +59,7 @@ class CartControllerTest {
 	@Test
 	void getAllCartItems_returns200_andList() throws Exception {
 		Food food = food(1L, "Burger");
-		when(cartRepository.findAll()).thenReturn(List.of(cart(1L, food, 1)));
+		when(cartService.getAllCartItems()).thenReturn(List.of(cart(1L, food, 1)));
 
 		mockMvc.perform(get("/api/v1/carts"))
 				.andExpect(status().isOk())
@@ -72,10 +70,8 @@ class CartControllerTest {
 	@Test
 	void createCartItem_returns200_andBody() throws Exception {
 		Food food = food(1L, "Burger");
-		when(foodRepository.findById(1L)).thenReturn(Optional.of(food));
-
 		Cart saved = cart(10L, food, 2);
-		when(cartRepository.save(any(Cart.class))).thenReturn(saved);
+		when(cartService.createCartItem(any(Cart.class))).thenReturn(saved);
 
 		mockMvc.perform(post("/api/v1/carts")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -89,10 +85,8 @@ class CartControllerTest {
 	@Test
 	void createCartItem_defaultsQuantityToOne_whenZero() throws Exception {
 		Food food = food(1L, "Burger");
-		when(foodRepository.findById(1L)).thenReturn(Optional.of(food));
-
 		Cart saved = cart(11L, food, 1);
-		when(cartRepository.save(any(Cart.class))).thenReturn(saved);
+		when(cartService.createCartItem(any(Cart.class))).thenReturn(saved);
 
 		mockMvc.perform(post("/api/v1/carts")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -103,7 +97,8 @@ class CartControllerTest {
 
 	@Test
 	void createCartItem_returns404_whenFoodMissing() throws Exception {
-		when(foodRepository.findById(42L)).thenReturn(Optional.empty());
+		when(cartService.createCartItem(any(Cart.class)))
+				.thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Food not found with id: 42"));
 
 		mockMvc.perform(post("/api/v1/carts")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -114,6 +109,8 @@ class CartControllerTest {
 
 	@Test
 	void createCartItem_returns404_whenFoodIdInvalid() throws Exception {
+		when(cartService.createCartItem(any(Cart.class)))
+				.thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Valid food id is required"));
 		mockMvc.perform(post("/api/v1/carts")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(
@@ -124,11 +121,8 @@ class CartControllerTest {
 	@Test
 	void updateCartItem_returns200_whenFound() throws Exception {
 		Food food = food(1L, "Burger");
-		Cart existing = cart(7L, food, 1);
-		when(cartRepository.findById(7L)).thenReturn(Optional.of(existing));
-
 		Cart updated = cart(7L, food, 3);
-		when(cartRepository.save(any(Cart.class))).thenReturn(updated);
+		when(cartService.updateCartItem(any(Long.class), any(Cart.class))).thenReturn(updated);
 
 		mockMvc.perform(put("/api/v1/carts/7")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -140,7 +134,8 @@ class CartControllerTest {
 
 	@Test
 	void updateCartItem_returns404_whenCartMissing() throws Exception {
-		when(cartRepository.findById(7L)).thenReturn(Optional.empty());
+		when(cartService.updateCartItem(any(Long.class), any(Cart.class)))
+				.thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Cart item not found with id: 7"));
 
 		mockMvc.perform(put("/api/v1/carts/7")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -150,9 +145,7 @@ class CartControllerTest {
 
 	@Test
 	void deleteCartItem_returns200_andDeletedFlag() throws Exception {
-		Food food = food(1L, "Burger");
-		Cart existing = cart(8L, food, 1);
-		when(cartRepository.findById(8L)).thenReturn(Optional.of(existing));
+		doNothing().when(cartService).deleteCartItem(8L);
 
 		mockMvc.perform(delete("/api/v1/carts/8"))
 				.andExpect(status().isOk())
@@ -161,7 +154,8 @@ class CartControllerTest {
 
 	@Test
 	void deleteCartItem_returns404_whenMissing() throws Exception {
-		when(cartRepository.findById(8L)).thenReturn(Optional.empty());
+		doThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Cart item not found with id: 8"))
+				.when(cartService).deleteCartItem(8L);
 
 		mockMvc.perform(delete("/api/v1/carts/8")).andExpect(status().isNotFound());
 	}

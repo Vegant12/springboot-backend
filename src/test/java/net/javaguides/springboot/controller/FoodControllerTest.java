@@ -17,7 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import net.javaguides.springboot.model.Food;
-import net.javaguides.springboot.repository.FoodRepository;
+import net.javaguides.springboot.service.FoodService;
 
 @WebMvcTest(FoodController.class)
 class FoodControllerTest {
@@ -26,7 +26,7 @@ class FoodControllerTest {
 	private MockMvc mockMvc;
 
 	@MockitoBean
-	private FoodRepository foodRepository;
+	private FoodService foodService;
 
 	@Test
 	void getFoodById_returns200_whenFound() throws Exception {
@@ -37,7 +37,7 @@ class FoodControllerTest {
 		food.setPrice(9.99);
 		food.setImageUrl("img.jpg");
 
-		when(foodRepository.findById(1L)).thenReturn(Optional.of(food));
+		when(foodService.getFoodById(1L)).thenReturn(food);
 
 		mockMvc.perform(get("/api/v1/foods/1"))
 				.andExpect(status().isOk())
@@ -47,7 +47,7 @@ class FoodControllerTest {
 
 	@Test
 	void getFoodById_returns404_whenMissing() throws Exception {
-		when(foodRepository.findById(99L)).thenReturn(Optional.empty());
+		when(foodService.getFoodById(99L)).thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Food not found with id: 99"));
 
 		mockMvc.perform(get("/api/v1/foods/99")).andExpect(status().isNotFound());
 	}
@@ -67,7 +67,7 @@ class FoodControllerTest {
 		saved.setPrice(input.getPrice());
 		saved.setImageUrl(input.getImageUrl());
 
-		when(foodRepository.save(any(Food.class))).thenReturn(saved);
+		when(foodService.createFood(any(Food.class))).thenReturn(saved);
 
 		mockMvc.perform(post("/api/v1/foods")
 				.contentType(MediaType.APPLICATION_JSON)

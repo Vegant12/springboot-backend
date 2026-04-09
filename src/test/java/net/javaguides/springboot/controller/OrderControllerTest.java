@@ -1,6 +1,8 @@
 package net.javaguides.springboot.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -10,7 +12,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import net.javaguides.springboot.model.Food;
 import net.javaguides.springboot.model.Order;
 import net.javaguides.springboot.model.OrderItem;
-import net.javaguides.springboot.repository.FoodRepository;
-import net.javaguides.springboot.repository.OrderRepository;
+import net.javaguides.springboot.service.OrderService;
 
 @WebMvcTest(OrderController.class)
 class OrderControllerTest {
@@ -32,17 +32,14 @@ class OrderControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private OrderRepository orderRepository;
-
-    @MockitoBean
-    private FoodRepository foodRepository;
+    private OrderService orderService;
 
     @Test
     void getOrderById_returns200_whenFound() throws Exception {
         Food food = food(1L, "Burger", 10.0);
         Order order = orderWithItem(5L, "SHIPPED", food, 2, 10.0);
 
-        when(orderRepository.findById(5L)).thenReturn(Optional.of(order));
+        when(orderService.getOrderById(5L)).thenReturn(order);
 
         mockMvc.perform(get("/api/v1/orders/5"))
                 .andExpect(status().isOk())
@@ -56,7 +53,8 @@ class OrderControllerTest {
 
     @Test
     void getOrderById_returns404_whenMissing() throws Exception {
-        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+        when(orderService.getOrderById(99L))
+                .thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Order not found with id: 99"));
 
         mockMvc.perform(get("/api/v1/orders/99")).andExpect(status().isNotFound());
     }
@@ -64,7 +62,7 @@ class OrderControllerTest {
     @Test
     void getAllOrders_returns200() throws Exception {
         Food food = food(1L, "Burger", 10.0);
-        when(orderRepository.findAll()).thenReturn(List.of(orderWithItem(1L, "PENDING", food, 1, 10.0)));
+        when(orderService.getAllOrders()).thenReturn(List.of(orderWithItem(1L, "PENDING", food, 1, 10.0)));
 
         mockMvc.perform(get("/api/v1/orders"))
                 .andExpect(status().isOk())
@@ -75,10 +73,8 @@ class OrderControllerTest {
     @Test
     void createOrder_returns200_andBody() throws Exception {
         Food food = food(1L, "Burger", 9.99);
-        when(foodRepository.findById(1L)).thenReturn(Optional.of(food));
-
         Order saved = orderWithItem(10L, "PENDING", food, 2, 9.99);
-        when(orderRepository.save(any(Order.class))).thenReturn(saved);
+        when(orderService.createOrder(any(Order.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -92,7 +88,8 @@ class OrderControllerTest {
 
     @Test
     void createOrder_returns404_whenFoodMissing() throws Exception {
-        when(foodRepository.findById(42L)).thenReturn(Optional.empty());
+        when(orderService.createOrder(any(Order.class)))
+                .thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Food not found with id: 42"));
 
         mockMvc.perform(post("/api/v1/orders")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -104,11 +101,8 @@ class OrderControllerTest {
     @Test
     void updateOrder_returns200_whenFound() throws Exception {
         Food food = food(1L, "Burger", 9.99);
-        Order existing = orderWithItem(7L, "PENDING", food, 1, 9.99);
-        when(orderRepository.findById(7L)).thenReturn(Optional.of(existing));
-
         Order updated = orderWithItem(7L, "COMPLETED", food, 1, 9.99);
-        when(orderRepository.save(any(Order.class))).thenReturn(updated);
+        when(orderService.updateOrder(any(Long.class), any(Order.class))).thenReturn(updated);
 
         mockMvc.perform(put("/api/v1/orders/7")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +113,8 @@ class OrderControllerTest {
 
     @Test
     void updateOrder_returns404_whenMissing() throws Exception {
-        when(orderRepository.findById(7L)).thenReturn(Optional.empty());
+        when(orderService.updateOrder(any(Long.class), any(Order.class)))
+                .thenThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Order not found with id: 7"));
 
         mockMvc.perform(put("/api/v1/orders/7")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,9 +124,7 @@ class OrderControllerTest {
 
     @Test
     void deleteOrder_returns200_andDeletedFlag() throws Exception {
-        Food food = food(1L, "Burger", 9.99);
-        Order existing = orderWithItem(8L, "PENDING", food, 1, 9.99);
-        when(orderRepository.findById(8L)).thenReturn(Optional.of(existing));
+        doNothing().when(orderService).deleteOrder(8L);
 
         mockMvc.perform(delete("/api/v1/orders/8"))
                 .andExpect(status().isOk())
@@ -140,7 +133,8 @@ class OrderControllerTest {
 
     @Test
     void deleteOrder_returns404_whenMissing() throws Exception {
-        when(orderRepository.findById(8L)).thenReturn(Optional.empty());
+        doThrow(new net.javaguides.springboot.exception.ResourceNotFoundException("Order not found with id: 8"))
+                .when(orderService).deleteOrder(8L);
 
         mockMvc.perform(delete("/api/v1/orders/8")).andExpect(status().isNotFound());
     }
