@@ -44,4 +44,4 @@ Example:
 
 
 The test scripts are at:
-`springboot-backend/src/test/java/net/javaguides/springboot/controller`
+`springboot-backend/src/test/java/net/javaguides`

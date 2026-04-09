@@ -29,6 +29,47 @@ Persistence uses **Spring Data JPA** and **MySQL**. Hibernate is configured with
 
 3. Start MySQL before starting the application.
 
+## SQL schema script
+
+Use the following script to create tables manually if needed.
+
+```sql
+CREATE TABLE foods (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    description VARCHAR(255),
+    image_url VARCHAR(255),
+    name VARCHAR(255) NOT NULL,
+    price DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE cart (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    food_id BIGINT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (id),
+    FOREIGN KEY (food_id) REFERENCES foods(id)
+);
+
+CREATE TABLE orders (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+    total_amount DOUBLE NOT NULL DEFAULT 0,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE order_items (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    order_id BIGINT NOT NULL,
+    food_id BIGINT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    price DOUBLE NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (food_id) REFERENCES foods(id)
+);
+
 ### Build
 
 From this directory (`springboot-backend`):
@@ -66,3 +107,6 @@ Run a single test class:
 ```
 
 **Note:** Full application context tests (for example `SpringbootBackendApplicationTests`) need a running MySQL instance that matches `application.properties`. Slice tests such as `@WebMvcTest` controller tests do not require the database.
+
+
+```
