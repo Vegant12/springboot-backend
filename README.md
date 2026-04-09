@@ -98,6 +98,7 @@ The API listens on **port 8080** by default (`http://localhost:8080`). Example b
 ### Admin Authentication
 
 username: admin
+
 password: admin123
 
 ### Run tests
