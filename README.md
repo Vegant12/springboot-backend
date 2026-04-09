@@ -69,6 +69,7 @@ CREATE TABLE order_items (
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (food_id) REFERENCES foods(id)
 );
+```
 
 ### Build
 
