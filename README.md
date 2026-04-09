@@ -94,6 +94,11 @@ mvnw.cmd clean package
 
 The API listens on **port 8080** by default (`http://localhost:8080`). Example base path: `http://localhost:8080/api/v1/foods`.
 
+### Admin Authentication
+
+username: admin
+password: admin123
+
 ### Run tests
 
 ```bash
